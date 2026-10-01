@@ -16,10 +16,10 @@ agent any
                 '''
             }
         }
-        stage ('Build Backend') {
+        stage ('Build backend') {
             steps{
                 sh '''
-                cd Backend
+                cd backend
                 docker build -t abinayasenguttuvan/three-tier-backend .
                 '''
             }
