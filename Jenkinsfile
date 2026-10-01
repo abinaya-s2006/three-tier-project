@@ -11,7 +11,7 @@ agent any
             steps{
                 sh '''
                 cd frontend
-                docker build -t abinayasenguttuvan/three-tier-frontend
+                docker build -t abinayasenguttuvan/three-tier-frontend .
 
                 '''
             }
@@ -20,7 +20,7 @@ agent any
             steps{
                 sh '''
                 cd Backend
-                docker build -t abinayasenguttuvan/three-tier-backend
+                docker build -t abinayasenguttuvan/three-tier-backend .
                 '''
             }
         }
