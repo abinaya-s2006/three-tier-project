@@ -35,7 +35,7 @@ agent any
         stage('Deploy Kubernetes') {
             steps{
                 sh '''
-                kubectl apply -f K8s
+                kubectl apply -f k8s
                 '''
             }
         }
