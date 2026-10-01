@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeployTrack</title>
+<style>
+  body { margin:0; background:#f1f4f0; color:#1e2a22;
+         font-family:"Trebuchet MS","Segoe UI",sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:32px 16px; }
+  h1 { margin:0 0 4px; }
+  .sub { color:#5c6b60; margin:0 0 20px; }
+  .stats { display:flex; gap:8px; margin-bottom:20px; }
+  .stat { flex:1; background:#fff; border:1px solid #cfd8d0;
+          padding:10px 12px; border-radius:6px; }
+  .stat b { display:block; font-size:1.5rem; }
+  form { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  input, select, button { font:inherit; padding:10px 12px;
+          border:1px solid #cfd8d0; border-radius:6px; }
+  input { flex:1 1 140px; }
+  button { background:#1d7a4d; color:#fff; border-color:#1d7a4d; cursor:pointer; }
+  table { width:100%; border-collapse:collapse; background:#fff;
+          border:1px solid #cfd8d0; font-size:.9rem; }
+  th, td { text-align:left; padding:10px; border-bottom:1px solid #e3e9e4; }
+  .Success { color:#1d7a4d; font-weight:bold; }
+  .Failed { color:#b3261e; font-weight:bold; }
+  .del { background:transparent; color:#b3261e; border-color:transparent; padding:2px 6px; }
+  #err { color:#b3261e; min-height:1.4em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>DeployTrack</h1>
+  <p class="sub">Log and track every deployment across environments.</p>
+
+  <div class="stats">
+    <div class="stat"><b id="total">0</b>Total</div>
+    <div class="stat"><b id="success">0</b>Success</div>
+    <div class="stat"><b id="failed">0</b>Failed</div>
+  </div>
+
+  <form id="depForm">
+    <input id="app_name" placeholder="App name" required>
+    <input id="version" placeholder="Version (v1.0.2)" required>
+    <select id="env"><option>Dev</option><option>Test</option><option>Prod</option></select>
+    <select id="status"><option>Success</option><option>Failed</option></select>
+    <button type="submit">Log deployment</button>
+  </form>
+  <div id="err"></div>
+
+  <table>
+    <thead><tr><th>App</th><th>Version</th><th>Env</th><th>Status</th><th>Time</th><th></th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+
+<script>
+  const API = "/api/deployments";
+  const err = document.getElementById("err");
+
+  async function call(url, opts) {
+    const res = await fetch(url, opts);
+    if (!res.ok) throw new Error((await res.json()).error || "Request failed");
+    return res.json();
+  }
+
+  async function load() {
+    try {
+      const [deps, s] = await Promise.all([call(API), call("/api/stats")]);
+      document.getElementById("total").textContent = s.total;
+      document.getElementById("success").textContent = s.success;
+      document.getElementById("failed").textContent = s.failed;
+
+      const rows = document.getElementById("rows");
+      rows.innerHTML = "";
+      deps.forEach(d => {
+        const tr = document.createElement("tr");
+        [d.app_name, d.version, d.env].forEach(v => {
+          const td = document.createElement("td");
+          td.textContent = v;
+          tr.appendChild(td);
+        });
+        const st = document.createElement("td");
+        st.textContent = d.status;
+        st.className = d.status;
+        tr.appendChild(st);
+        const tm = document.createElement("td");
+        tm.textContent = d.created_at;
+        tr.appendChild(tm);
+        const act = document.createElement("td");
+        const btn = document.createElement("button");
+        btn.textContent = "Delete";
+        btn.className = "del";
+        btn.onclick = async () => {
+          await call(`${API}/${d.id}`, { method: "DELETE" });
+          load();
+        };
+        act.appendChild(btn);
+        tr.appendChild(act);
+        rows.appendChild(tr);
+      });
+      err.textContent = "";
+    } catch {
+      err.textContent = "Backend reach panna mudiyala. app.py run aaguthannu check pannunga.";
+    }
+  }
+
+  document.getElementById("depForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      await call(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          app_name: document.getElementById("app_name").value,
+          version: document.getElementById("version").value,
+          env: document.getElementById("env").value,
+          status: document.getElementById("status").value
+        })
+      });
+      e.target.reset();
+      load();
+    } catch (ex) { err.textContent = ex.message; }
+  });
+
+  load();
+</script>
+</body>
+</html>
